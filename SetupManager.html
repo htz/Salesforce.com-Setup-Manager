@@ -1,0 +1,187 @@
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script type="text/javascript" src="https://raw.github.com/jquery/jquery-tmpl/master/jquery.tmpl.js"></script>
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.min.js"></script>
+<script type="text/javascript">
+	(function() {
+		$(function() {
+			$('#SetupManager').parent().siblings('div:first').remove();
+
+			function writeSetupTab(menu) {
+				$(menu).each(function() {
+					var m = this;
+					m.child1 = $(m.child).filter(function(i) {return i % 3 == 0;}).toArray();
+					m.child2 = $(m.child).filter(function(i) {return i % 3 == 1;}).toArray();
+					m.child3 = $(m.child).filter(function(i) {return i % 3 == 2;}).toArray();
+					$('#SetupManager #uploadtab ul').append($('#tabTemplate').tmpl(m));
+					$('#SetupManager').append($('#tabBodyTemplate').tmpl(m));
+				});
+				$(document).ready(function () {
+					/* tab click event */
+					$('#uploadtab li').click(function() {
+						$('#SetupManager .bPageBlock').hide();
+						$('#SetupManager .bPageBlock#' + $(this).attr('id')).show();
+						$('#SetupManager #uploadtab li.active').removeClass('active');
+						$(this).addClass('active');
+					});
+					/* sotable */
+					$('#SetupManager .bPageBlock')
+					.sortable({items: '.draggable', opacity: 0.5, revert: true})
+					.bind('sortstop', function(e) {writeCookie(this);});
+					/* min/max */
+					$('#SetupManager .action .minimize').click(function() {
+						$(this).parent().parent().siblings('.body').hide('fast');
+						$(this).hide().siblings('.maximize').show();
+					});
+					$('#SetupManager .action .maximize').click(function() {
+						$(this).parent().parent().siblings('.body').show('fast');
+						$(this).hide().siblings('.minimize').show();
+					});
+				});
+				$('#SetupManager #uploadtab ul li:first').trigger('click');
+				$('#SetupManager').show();
+			}
+
+			function writeCookie(trgetTab) {
+				var id = $(trgetTab).attr('id');
+				var order = $(trgetTab).sortable('toArray');
+				var num = [
+					$(trgetTab).find('.droparea1 .setupWindow').length,
+					$(trgetTab).find('.droparea2 .setupWindow').length,
+					$(trgetTab).find('.droparea3 .setupWindow').length
+				];
+				var windowState = {};
+				$(trgetTab).find('.setupWindow').map(function() {
+					windowState[$(this).attr('id')] = !$(this).find('.body').is(":hidden");
+				});
+				
+			}
+
+			/* run only /home/home.jsp */
+			if (document.URL.match(/https\:\/\/(?:[^\/]+)\.salesforce\.com\/home\/home\.jsp(?:[\?#].*)?/)) {
+				$.ajax({
+					type: 'GET',
+					url: '/setup/forcecomHomepage.apexp',
+					success: function (data, status, xhr) {
+						var divs = $(data).find('#AutoNumber5 > div');
+						var menu = [];
+						var current, current_name;
+						function toParam(div) {
+							if (div.hasClass('parent')) {
+								var a = div.find('> a.setupFolder');
+								if (a.length == 0) a = div.find('> span > a.setupFolder');
+								var divs = div.find('> .childContainer > div');
+								var child = $(divs).map(function () {
+									return toParam($(this));
+								}).toArray();
+								return {
+									id: div.attr('id'),
+									href: a.attr('href'),
+									title: a.html(),
+									child: child
+								};
+							} else if (div.hasClass('setupLeaf')) {
+								var a = div.find('a');
+								return {
+									id: a.attr('id'),
+									href: a.attr('href'),
+									title: a.html()
+								};
+							}
+						};
+						$(divs).each(function() {
+							if ($(this).hasClass('setupNavtree')) {
+								if (current_name) menu[menu.length - 1].child = current;
+								current = [];
+								current_name = $(this).find('a.setupSection').attr('id');
+								var a = $(this).find('a');
+								menu.push({
+									id: a.attr('id'),
+									href: a.attr('href'),
+									title: a.html()
+								});
+							} else if ($(this).hasClass('parent') || $(this).hasClass('setupLeaf')) {
+								current.push(toParam($(this)));
+							}
+						});
+						menu[current_name] = current;
+						writeSetupTab(menu);
+					},
+					error: function (res, status, error) {
+						alert('Application error!');
+					}
+				});
+			}
+		});
+	})(jQuery);
+</script>
+<script id="tabTemplate" type="text/x-jquery-tmpl">
+	<li id="${id}" onDblClick="location.href = '${href}';">{{html title}}</li>
+</script>
+<script id="tabBodyTemplate" type="text/x-jquery-tmpl">
+	<div id="${id}" class="bPageBlock" style="display: none;">
+		{{if child}}
+		<div class="dropable droparea1">
+			{{tmpl(child1) "#tabBodyBlockTemplate"}}
+		</div>
+		<div class="dropable droparea2">
+			{{tmpl(child2) "#tabBodyBlockTemplate"}}
+		</div>
+		<div class="dropable droparea3">
+			{{tmpl(child3) "#tabBodyBlockTemplate"}}
+		</div>
+		<div style="clear:both"></div>
+		{{/if}}
+	</div>
+</script>
+<script id="tabBodyBlockTemplate" type="text/x-jquery-tmpl">
+	<div id="${id}" class="setupWindow draggable">
+		<h2>
+			<a href="${href}">{{html title}}</a>
+			<div class="action">
+				<img class="minimize" src="data:image/gif;base64,R0lGODlhAQABAID/AMDAwAAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt="minimize" />
+				<img class="maximize" src="data:image/gif;base64,R0lGODlhAQABAID/AMDAwAAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt="maximize" style="display:none" />
+			</div>
+		</h2>
+		<div class="body">
+			{{if child}}
+			<ul>
+				{{tmpl(child) "#tabBodyBlockListTemplate"}}
+			</ul>
+			{{/if}}
+		</div>
+	</div>
+</script>
+<script id="tabBodyBlockListTemplate" type="text/x-jquery-tmpl">
+	<li>
+		<a href="${href}">{{html title}}</a>
+		{{if child}}
+		<ul>
+			{{tmpl(child) "#tabBodyBlockListTemplate"}}
+		</ul>
+		{{/if}}
+	</li>
+</script>
+<style type="text/css">
+	#SetupManager #uploadtab{margin:0;padding:0}
+	#SetupManager #uploadtab ul{list-style-type:none;margin-left:4px;padding:0}
+	#SetupManager #uploadtab ul li{float:left;height:16px;padding:4px 8px;margin:0 4px 0 0;background-color:#ccc;-webkit-border-radius:4px 4px 0 0;-moz-border-radius:4px 4px 0 0;-o-border-radius:4px 4px 0 0;-ms-border-radius:4px 4px 0 0;-khtml-border-radius:4px 4px 0 0;border-radius:4px 4px 0 0;font-weight:bold;cursor:pointer}
+	#SetupManager #uploadtab ul li.active{background-color:#1797c0;color:#fff;cursor:default}
+	#SetupManager .bPageBlock{padding:8px}
+	#SetupManager .bPageBlock .dropable{float:left;width:33%;box-sizing: border-box;padding:0 0 50px 0}
+	#SetupManager .bPageBlock .dropable.droparea2{width:34%;padding-left:18px}
+	#SetupManager .bPageBlock .dropable.droparea3{padding-left:18px}
+	#SetupManager .bPageBlock .setupWindow{margin-bottom: 18px;border:1px solid gainsboro;background-color:#fff}
+	#SetupManager .bPageBlock .setupWindow.ui-sortable-placeholder{border:3px dashed #aaa;visibility:visible !important}
+	#SetupManager .bPageBlock .setupWindow h2{display:block;line-height:19px;height:20px;padding:2px 4px;font-size:12px;font-weight: bold;background-color:#C1D7E0;cursor:move}
+	#SetupManager .bPageBlock .setupWindow h2 .action{display: inline-block;float:right}
+	#SetupManager .bPageBlock .setupWindow h2 .action img{width:16px;height:16px;margin:2px;background-repeat:no-repeat;cursor:pointer}
+	#SetupManager .bPageBlock .setupWindow h2 .action .minimize{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAQNJREFUeNpiXJbPkMDAwJDJQDqYHjnh/wIWkGb3/GozNjY2Bg4ODgYWTm0GBhZpTOV/njL8+X6V4cePHwy/fv1i2DmxFSQKNoCBk/EdA8NvIALhzw/wWssMVo/ggw1g/PuegVwANuD/vw+UGcDI+JdCA35+pMyATz8vUWYAw38Yl5EBFMAixt8wFL45y4mqFNkA1t/MEEmgbsb/OGz6wwzRzYjFALAkkvlfjvAj+FBTWRiYcXuB5TcT1AMISzAdgiyLwwWM//8DlTDC1TIygiigCMxvQPo/IxYDYABFkhHmCkawLxhgBmPxwvTVW9+SE4PTYR4DhRg3GQZ8/f///0eAAAMACbFREmi1ZPkAAAAASUVORK5CYII=)}
+	#SetupManager .bPageBlock .setupWindow h2 .action .maximize{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAR5JREFUeNpi3O/Lnvn88M8QBhKBpC37GodNP6azgDRH7J/rxMAhwMDAJcrAwCvNwMDGi6nj12cGhs9PGRi+vWZg+PGBYYVjMkh0OguI/H39AAO5AGwA44/3lBnA8P0DhS74/xdVMPsYhsI/U63wGPD1M0GbcKkBG/D+1zUUQREgftPCwsDI8B/MF675y/Dh93WG////YzeA+RcjxBYwAWGz/GaEikA0Mf8CMRmhitAMYP3NBOb8B0JGqAqBxt8oCkGWIIxDM4AJ5gJGRrAh34rZ4TYxgp3NyMDMwAS3/D+6ARDnwoMLqoQRiY+kE5sXWKAu+A/XAuVjcTMj1oSEQ5LxPxEJCZSrVq78wUBOboRZyg/E3GSk4q/AdPERIMAAlS5XJVQeMzAAAAAASUVORK5CYII=)}
+	#SetupManager .bPageBlock .setupWindow ul{margin:0;padding:0}
+</style>
+<div id="SetupManager" class="bRelatedList" style="display: none;">
+	<div id="uploadtab">
+		<ul>
+		</ul>
+	</div>
+</div>
