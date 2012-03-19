@@ -6,17 +6,19 @@
 <script type="text/javascript">
 	(function() {
 		$(function() {
+			var setupData;
 			$('#SetupManager').parent().siblings('div:first').remove();
 
-			function writeSetupTab(data) {
+			function writeSetupTab(data, clear) {
+				setupData = data;
 				$(data).each(function() {
-					var d = setWindowOrder(this);
-					$('#SetupManager #setuptab ul').append($('#tabTemplate').tmpl(d));
+					var d = setWindowOrder(this, clear);
+					$('#SetupManager #setuptab ul li.action').before($('#tabTemplate').tmpl(d));
 					$('#SetupManager').append($('#tabBodyTemplate').tmpl(d));
 				});
 				$(document).ready(function () {
 					/* tab click event */
-					$('#setuptab li').click(function() {
+					$('#SetupManager #setuptab li.tab').click(function() {
 						var id = $(this).attr('id');
 						$('#SetupManager .bPageBlock').hide();
 						$('#SetupManager .bPageBlock#' + id).show();
@@ -28,6 +30,7 @@
 					$('#SetupManager .bPageBlock .droparea')
 					.sortable({
 						connectWith: 'ul',
+						cancel: '.body,.action,:input,button',
 						opacity: 0.5,
 						revert: true,
 					}).disableSelection()
@@ -53,7 +56,14 @@
 						$(this).toggleClass('setupPlus');
 						$(this).toggleClass('setupMinus');
 						$(this).siblings('ul').toggle('fast');
-					})
+					});
+					/* reset */
+					$('#SetupManager #setuptab ul li.action .reset').click(function() {
+						clearCookie();
+						$('#SetupManager #setuptab li.tab').remove();
+						$('#SetupManager .bPageBlock').remove();
+						writeSetupTab(setupData, true);
+					});
 				});
 				var firsttab = $.cookie('setupmanager-currenttab');
 				if (firsttab) $('#SetupManager #setuptab ul li#' + firsttab).trigger('click');
@@ -61,9 +71,9 @@
 				$('#SetupManager').show();
 			}
 
-			function setWindowOrder(d) {
+			function setWindowOrder(d, clear) {
 				var cstr = $.cookie('setupmanager-' + d.id);
-				if (cstr) {
+				if (cstr && !clear) {
 					var windows = {};
 					$(d.child).map(function() {windows[this.id] = this;});
 					var order = $.evalJSON(cstr);
@@ -90,6 +100,14 @@
 				return d;
 			}
 
+			function clearCookie() {
+				$('#SetupManager #setuptab li.tab').each(function() {
+					var id = $(this).attr('id');
+					$.cookie('setupmanager-' + id, '', {expires: -1});
+				});
+				$.cookie('setupmanager-currenttab', id, {expires: -1});
+			}
+
 			function writeCookie(trgetTab) {
 				var id = trgetTab.attr('id');
 				var toStatus = function() {
@@ -103,7 +121,6 @@
 					$(trgetTab.find('.droparea2').sortable('toArray')).map(toStatus).toArray(),
 					$(trgetTab.find('.droparea3').sortable('toArray')).map(toStatus).toArray()
 				];
-				debugger;
 				$.cookie('setupmanager-' + id, $.toJSON(order), {expires: 365});
 			}
 
@@ -128,6 +145,7 @@
 									id: div.attr('id'),
 									href: a.attr('href'),
 									title: a.html(),
+									newflag: a.siblings('.newFlag').html(),
 									child: child
 								};
 							} else if (div.hasClass('setupLeaf')) {
@@ -135,7 +153,8 @@
 								return {
 									id: a.attr('id'),
 									href: a.attr('href'),
-									title: a.html()
+									title: a.html(),
+									newflag: a.siblings('.newFlag').html()
 								};
 							}
 						};
@@ -148,7 +167,8 @@
 								menu.push({
 									id: a.attr('id'),
 									href: a.attr('href'),
-									title: a.html()
+									title: a.html(),
+									newflag: a.siblings('.newFlag').html()
 								});
 							} else if ($(this).hasClass('parent') || $(this).hasClass('setupLeaf')) {
 								current.push(toParam($(this)));
@@ -168,7 +188,9 @@
 </script>
 <script id="tabTemplate" type="text/x-jquery-tmpl">
 	{{if child.length > 0}}
-	<li id="${id}" onDblClick="location.href = '${href}';" target="_blank">{{html title}}</li>
+	<li id="${id}" class="tab" onDblClick="location.href = '${href}';" target="_blank">
+		${title}
+	</li>
 	{{/if}}
 </script>
 <script id="tabBodyTemplate" type="text/x-jquery-tmpl">
@@ -190,7 +212,8 @@
 <script id="tabBodyBlockTemplate" type="text/x-jquery-tmpl">
 	<li id="${id}" class="setupWindow draggable">
 		<h2>
-			<a href="${href}" target="_blank">{{html title}}</a>
+			<a href="${href}" target="_blank">${title}</a>
+			{{if newflag}}<span class="newFlag">${newflag}</span>{{/if}}
 			<div class="action">
 				<img class="minimize" src="data:image/gif;base64,R0lGODlhAQABAID/AMDAwAAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt="minimize" style="{{if !status}}display:none{{/if}}" />
 				<img class="maximize" src="data:image/gif;base64,R0lGODlhAQABAID/AMDAwAAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt="maximize" style="{{if status}}display:none{{/if}}" />
@@ -209,38 +232,42 @@
 	{{if child}}
 	<li class="parent">
 		<img src="data:image/gif;base64,R0lGODlhAQABAID/AMDAwAAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt="" class="setupImage setupPlus" title="" />
-		<a href="${href}" target="_blank">{{html title}}</a>
+		<a href="${href}" target="_blank">${title}</a>
+		{{if newflag}}<span class="newFlag">${newflag}</span>{{/if}}
 		<ul style="display:none">
 			{{tmpl(child) "#tabBodyBlockListTemplate"}}
 		</ul>
 	</li>
 	{{else}}
 	<li class="leaf">
-		<a href="${href}" target="_blank">{{html title}}</a>
+		<a href="${href}" target="_blank">${title}</a>
+		{{if newflag}}<span class="newFlag">${newflag}</span>{{/if}}
 	</li>
 	{{/if}}
 </script>
 <style type="text/css">
 	#SetupManager #setuptab{margin:0;padding:0}
 	#SetupManager #setuptab ul{list-style-type:none;margin-left:4px;padding:0}
-	#SetupManager #setuptab ul li{float:left;height:16px;padding:4px 8px;margin:0 4px 0 0;background-color:#ccc;-webkit-border-radius:4px 4px 0 0;-moz-border-radius:4px 4px 0 0;-o-border-radius:4px 4px 0 0;-ms-border-radius:4px 4px 0 0;-khtml-border-radius:4px 4px 0 0;border-radius:4px 4px 0 0;font-weight:bold;cursor:pointer}
-	#SetupManager #setuptab ul li.active{background-color:#1797c0;color:#fff;cursor:default}
+	#SetupManager #setuptab ul li.tab{float:left;height:16px;padding:4px 8px;margin:0 4px 0 0;background-color:#ccc;-webkit-border-radius:4px 4px 0 0;-moz-border-radius:4px 4px 0 0;-o-border-radius:4px 4px 0 0;-ms-border-radius:4px 4px 0 0;-khtml-border-radius:4px 4px 0 0;border-radius:4px 4px 0 0;font-weight:bold;cursor:pointer}
+	#SetupManager #setuptab ul li.tab.active{background-color:#1797c0;color:#fff;cursor:default}
+	#SetupManager #setuptab ul li.action{float:right;padding:4px 8px;background-color:transparent}
 	#SetupManager .bPageBlock{padding:8px}
-	#SetupManager .bPageBlock .droparea{float:left;width:33%;min-height:100px;box-sizing: border-box;padding:0 0 50px 0;margin:0;list-style-type:none}
+	#SetupManager .bPageBlock .droparea{float:left;width:33%;min-height:100px;box-sizing:border-box;padding:0 0 50px 0;margin:0;list-style-type:none}
 	#SetupManager .bPageBlock .droparea.droparea2{width:34%;padding-left:18px}
 	#SetupManager .bPageBlock .droparea.droparea3{padding-left:18px}
-	#SetupManager .bPageBlock .setupWindow{margin-bottom: 18px;border:1px solid gainsboro;background-color:#fff}
+	#SetupManager .bPageBlock .setupWindow{margin:0 0 18px 0;border:1px solid gainsboro;background-color:#fff;-webkit-border-radius:4px;-moz-border-radius:4px;-o-border-radius:4px;-ms-border-radius:4px;-khtml-border-radius:4px;border-radius:4px}
 	#SetupManager .bPageBlock .setupWindow.ui-sortable-placeholder{border:3px dashed #aaa;visibility:visible !important}
-	#SetupManager .bPageBlock .setupWindow h2{display:block;line-height:19px;height:20px;padding:2px 4px;font-size:12px;font-weight: bold;background-color:#C1D7E0;cursor:move}
-	#SetupManager .bPageBlock .setupWindow h2 .action{display: inline-block;float:right}
+	#SetupManager .bPageBlock .setupWindow h2{display:block;line-height:19px;height:20px;padding:2px 4px;font-size:12px;font-weight:bold;background-color:#C1D7E0;cursor:move}
+	#SetupManager .bPageBlock .setupWindow h2 .action{display:inline-block;float:right}
 	#SetupManager .bPageBlock .setupWindow h2 .action img{width:16px;height:16px;margin:2px;background-repeat:no-repeat;cursor:pointer}
 	#SetupManager .bPageBlock .setupWindow h2 .action .minimize{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAQNJREFUeNpiXJbPkMDAwJDJQDqYHjnh/wIWkGb3/GozNjY2Bg4ODgYWTm0GBhZpTOV/njL8+X6V4cePHwy/fv1i2DmxFSQKNoCBk/EdA8NvIALhzw/wWssMVo/ggw1g/PuegVwANuD/vw+UGcDI+JdCA35+pMyATz8vUWYAw38Yl5EBFMAixt8wFL45y4mqFNkA1t/MEEmgbsb/OGz6wwzRzYjFALAkkvlfjvAj+FBTWRiYcXuB5TcT1AMISzAdgiyLwwWM//8DlTDC1TIygiigCMxvQPo/IxYDYABFkhHmCkawLxhgBmPxwvTVW9+SE4PTYR4DhRg3GQZ8/f///0eAAAMACbFREmi1ZPkAAAAASUVORK5CYII=)}
 	#SetupManager .bPageBlock .setupWindow h2 .action .maximize{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAR5JREFUeNpi3O/Lnvn88M8QBhKBpC37GodNP6azgDRH7J/rxMAhwMDAJcrAwCvNwMDGi6nj12cGhs9PGRi+vWZg+PGBYYVjMkh0OguI/H39AAO5AGwA44/3lBnA8P0DhS74/xdVMPsYhsI/U63wGPD1M0GbcKkBG/D+1zUUQREgftPCwsDI8B/MF675y/Dh93WG////YzeA+RcjxBYwAWGz/GaEikA0Mf8CMRmhitAMYP3NBOb8B0JGqAqBxt8oCkGWIIxDM4AJ5gJGRrAh34rZ4TYxgp3NyMDMwAS3/D+6ARDnwoMLqoQRiY+kE5sXWKAu+A/XAuVjcTMj1oSEQ5LxPxEJCZSrVq78wUBOboRZyg/E3GSk4q/AdPERIMAAlS5XJVQeMzAAAAAASUVORK5CYII=)}
 	#SetupManager .bPageBlock .setupWindow ul{margin:0;padding:0;list-style-type:none}
-	#SetupManager .bPageBlock .setupWindow .body{padding:8px}
-	#SetupManager .bPageBlock .setupWindow .body > ul li{margin:0}
+	#SetupManager .bPageBlock .setupWindow .body{padding:3px 8px 8px}
+	#SetupManager .bPageBlock .setupWindow .body > ul li{margin:5px 0 0 0;line-height:15px}
+	#SetupManager .bPageBlock .setupWindow .body > ul li.parent{font-weight:bold}
+	#SetupManager .bPageBlock .setupWindow .body > ul li.leaf{padding-left:16px;font-weight:normal}
 	#SetupManager .bPageBlock .setupWindow .body > ul > li ul{margin-left:16px}
-	#SetupManager .bPageBlock .setupWindow .body > ul > li ul li.leaf{padding-left:16px}
 	#SetupManager .bPageBlock .setupWindow .body .setupImage{width:11px;height:11px;background-repeat:no-repeat;cursor:pointer;padding:0}
 	#SetupManager .bPageBlock .setupWindow .body .setupPlus{background-image:url(/img/alohaSkin/setup/setup_plus_lev1.gif);}
 	#SetupManager .bPageBlock .setupWindow .body .setupMinus{background-image:url(/img/alohaSkin/setup/setup_minus_lev1.gif);}
@@ -248,6 +275,9 @@
 <div id="SetupManager" class="bRelatedList" style="display: none;">
 	<div id="setuptab">
 		<ul>
+			<li class="action">
+				<a href="javascript:void(0);" class="reset">Reset</a>
+			</li>
 		</ul>
 	</div>
 </div>
