@@ -7,8 +7,8 @@ function require(option) {
 
 require({src: 'https://raw.github.com/jquery/jquery-tmpl/master/jquery.tmpl.js'});
 require({src: 'https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.min.js'});
-require({src: 'https://raw.github.com/htz/Salesforce.com-Setup-Manager/master/jquery.cookie.js'});
-require({src: 'https://raw.github.com/htz/Salesforce.com-Setup-Manager/master/jquery.json.min.js'});
+require({src: 'https://raw.github.com/htz/Salesforce.com-Setup-Manager/sm_1/jquery.cookie.js'});
+require({src: 'https://raw.github.com/htz/Salesforce.com-Setup-Manager/sm_1/jquery.json.min.js'});
 
 (function($) {
 	$(function() {
