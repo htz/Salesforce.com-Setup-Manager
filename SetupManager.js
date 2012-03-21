@@ -191,4 +191,4 @@ require({src: 'https://raw.github.com/htz/Salesforce.com-Setup-Manager/master/jq
 			});
 		}
 	});
-})(jQuery);
+})(jQuery.noConflict());
