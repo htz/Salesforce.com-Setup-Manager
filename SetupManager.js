@@ -5,7 +5,6 @@ function require(option) {
 	document.write(script);
 }
 
-require({src: 'https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js'});
 require({src: 'https://raw.github.com/jquery/jquery-tmpl/master/jquery.tmpl.js'});
 require({src: 'https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.min.js'});
 require({src: 'https://raw.github.com/htz/Salesforce.com-Setup-Manager/master/jquery.cookie.js'});
