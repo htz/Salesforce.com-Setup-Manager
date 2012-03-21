@@ -1,4 +1,4 @@
-(function() {
+(function($) {
 	$(function() {
 		var setupData;
 		$('#SetupManager').parent().siblings('div:first').remove();
