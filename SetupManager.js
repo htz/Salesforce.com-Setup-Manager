@@ -5,7 +5,7 @@ function require(option) {
 	document.write(script);
 }
 
-require({src: 'https://rawgithub.com/jquery/jquery-tmpl/master/jquery.tmpl.js'});
+require({src: 'https://rawgithub.com/BorisMoore/jquery-tmpl/master/jquery.tmpl.min.js'});
 require({src: 'https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.min.js'});
 require({src: 'https://rawgithub.com/htz/Salesforce.com-Setup-Manager/sm_1/jquery.cookie.js'});
 require({src: 'https://rawgithub.com/htz/Salesforce.com-Setup-Manager/sm_1/jquery.json.min.js'});
